@@ -83,7 +83,7 @@
 ## Phase 3: Infrastructure as Code
 
 ### Task 3.1: Set Up AWS CDK
-- [ ] Initialize AWS CDK project
+- [ ] Initialize CDK project
 - [ ] Configure CDK for multiple environments (dev, staging, prod)
 - [ ] Set up GitHub Actions for CDK deployments
 
