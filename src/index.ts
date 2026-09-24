@@ -6,6 +6,9 @@
 // Entry point for the application
 // Core logic will be implemented in subsequent tasks
 
+export * from './evaluator';
+export * from './jev';
+
 export const version = '1.0.0';
 
 export const initialize = () => {
