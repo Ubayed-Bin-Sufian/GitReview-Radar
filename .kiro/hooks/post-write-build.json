@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Build on File Write",
+      "trigger": "PostToolUse",
+      "description": "Trigger npm build after file writes",
+      "matcher": "PostFileCreate|PostFileSave",
+      "action": {
+        "type": "command",
+        "command": "cd /home/ubayed/GitReview-Radar && npm run build"
+      }
+    }
+  ]
+}
