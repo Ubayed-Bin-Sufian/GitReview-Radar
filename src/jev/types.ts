@@ -54,6 +54,52 @@ export interface DecisionResult {
 
 export type PRState = 'NEEDS_AUTHOR_FIX' | 'READY_FOR_FINAL_MERGE' | 'STALE_BRANCH' | 'CI_BLOCKED';
 
+// Validation
+export function validatePRMetadata(input: unknown): PRMetadata {
+  if (typeof input !== 'object' || input === null) {
+    throw new Error('Input must be a valid object');
+  }
+
+  const requiredFields: (keyof PRMetadata)[] = [
+    'pr_id', 'repo', 'author', 'diff_size', 
+    'review_status', 'ci_build_state', 'branch_staleness_days'
+  ];
+
+  for (const field of requiredFields) {
+    if (!(field in input)) {
+      throw new Error(`Missing required field: ${field}`);
+    }
+  }
+
+  const pr = input as PRMetadata;
+
+  if (typeof pr.pr_id !== 'string' || pr.pr_id.length === 0) {
+    throw new Error('pr_id must be a non-empty string');
+  }
+
+  if (typeof pr.repo !== 'string' || pr.repo.length === 0) {
+    throw new Error('repo must be a non-empty string');
+  }
+
+  if (typeof pr.diff_size !== 'number' || pr.diff_size < 0) {
+    throw new Error('diff_size must be a non-negative integer');
+  }
+
+  if (!['APPROVED', 'CHANGES_REQUESTED', 'PENDING'].includes(pr.review_status)) {
+    throw new Error('Invalid review_status value');
+  }
+
+  if (!['SUCCESS', 'FAILED', 'PENDING', 'ERROR'].includes(pr.ci_build_state)) {
+    throw new Error('Invalid ci_build_state value');
+  }
+
+  if (typeof pr.branch_staleness_days !== 'number' || pr.branch_staleness_days < 0) {
+    throw new Error('branch_staleness_days must be a non-negative integer');
+  }
+
+  return pr;
+}
+
 // Jev Request/Response
 export interface JevRequest {
   model?: string;

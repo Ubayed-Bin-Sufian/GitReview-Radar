@@ -7,7 +7,7 @@
 export type Environment = 'DEV' | 'STAGING' | 'PROD';
 
 // Configuration interface
-export interface AppConfig {
+export interface Config {
   readonly environment: Environment;
   readonly jevApiKey: string;
   readonly jevEndpoint: string;
@@ -19,7 +19,7 @@ export interface AppConfig {
 }
 
 // Base configuration
-const baseConfig: AppConfig = {
+const baseConfig: Config = {
   environment: getEnvironment(),
   jevApiKey: getRequiredEnv('JEV_API_KEY'),
   jevEndpoint: process.env.JEV_ENDPOINT || 'https://api.typesafe.ai/jev/v1/chat/completions',
@@ -27,7 +27,7 @@ const baseConfig: AppConfig = {
   digestWebhookUrl: process.env.DIGEST_WEBHOOK_URL,
   databaseTableName: process.env.DATABASE_TABLE_NAME || 'PRPulse-Cache-dev',
   rateLimitPerMinute: parseInt(process.env.RATE_LIMIT_PER_MINUTE || '60', 10),
-  logLevel: (process.env.LOG_LEVEL as AppConfig['logLevel']) || 'INFO',
+  logLevel: (process.env.LOG_LEVEL as Config['logLevel']) || 'INFO',
 };
 
 /**
@@ -75,14 +75,14 @@ export function getApiGatewayConfig() {
 /**
  * Get full application configuration
  */
-export function getConfig(): AppConfig {
+export function getConfig(): Config {
   return { ...baseConfig };
 }
 
 /**
  * Validate configuration
  */
-export function validateConfig(config: AppConfig): boolean {
+export function validateConfig(config: Config): boolean {
   const errors: string[] = [];
 
   if (!config.jevApiKey) {
@@ -108,8 +108,8 @@ export function validateConfig(config: AppConfig): boolean {
 /**
  * Get log level priority for filtering
  */
-export function getLogLevelPriority(level: AppConfig['logLevel']): number {
-  const priorities: Record<AppConfig['logLevel'], number> = {
+export function getLogLevelPriority(level: Config['logLevel']): number {
+  const priorities: Record<Config['logLevel'], number> = {
     DEBUG: 0,
     INFO: 1,
     WARN: 2,
