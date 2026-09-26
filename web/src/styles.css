@@ -1,0 +1,18 @@
+:root {
+  color: #e8eef7;
+  background: #0f1419;
+  font-family: "Segoe UI", sans-serif;
+}
+
+body { margin: 0; }
+main { max-width: 960px; margin: 0 auto; padding: 24px; }
+nav { display: flex; gap: 12px; margin-bottom: 24px; }
+button, input { font: inherit; }
+button { background: #3d8bfd; color: white; border: 0; border-radius: 6px; padding: 8px 12px; cursor: pointer; }
+input, select { width: 100%; box-sizing: border-box; margin: 6px 0 12px; padding: 8px; border-radius: 6px; border: 1px solid #334; background: #1b2430; color: inherit; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 8px; border-bottom: 1px solid #243041; }
+.card { background: #17202b; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+.error { color: #ff8b8b; }
+.note { color: #9fb0c6; }
+label.toggle { display: flex; gap: 8px; align-items: center; }
