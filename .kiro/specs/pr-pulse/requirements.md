@@ -1,10 +1,40 @@
-# PR-Pulse (GitReview Radar) MVP - Requirements
+# Requirements Document
+
+## Introduction
+
+PR-Pulse (GitReview Radar) is an open-source developer tool that ingests Pull Request metadata, evaluates actionability using TypeSafe AI's Jev model, and outputs daily prioritization digests for maintainers and engineering teams.
+
+This requirements document defines the MVP functionality for the PR-Pulse system, including:
+- PR metadata ingestion and classification into actionable states
+- Actionability score calculation (0-100)
+- Jev-based decision engine using parallel Choice Score, and Noul primitives
+- Daily digest generation and notification delivery
+
+---
+
+## Glossary
+
+| Term | Definition |
+|------|------------|
+| PR | Pull Request - A proposed change to a code repository |
+| Actionability Score | A 0-100 score indicating how urgently a PR requires attention |
+| State | The classification result: CI_BLOCKED, NEEDS_AUTHOR_FIX, STALE_BRANCH, or READY_FOR_FINAL_MERGE |
+| Jev | TypeSafe AI's decision engine for parallel primitive evaluation |
+| Choice | A Jev primitive that selects from predefined options |
+| Score | A Jev primitive that outputs a numeric value within a range |
+| Noul | A Jev primitive that evaluates boolean conditions |
+| Diff Size | The number of lines changed in a PR |
+| Branch Staleness | The number of days since a branch was created or last updated |
+| Review Status | The current state of code review: APPROVED, CHANGES_REQUESTED, or PENDING |
+| CI Build State | The status of continuous integration checks: SUCCESS, FAILED, PENDING, or ERROR |
+
+---
 
 ## EARS Notation: Expectations, Acceptance, Rules, Scenarios
 
 ---
 
-## 1. Expectations
+## Requirements
 
 ### 1.1 Core Expectation
 **CE-1**: The system shall ingest Pull Request (PR) metadata from GitHub and classify each PR into a defined set of actionable states to help engineering teams prioritize review efforts.
@@ -14,7 +44,7 @@
 
 ---
 
-## 2. Acceptance Criteria
+### 1.3 Acceptance Criteria
 
 ### AC-1: PR Metadata Ingestion
 **Given** a PR from GitHub with metadata fields: `diff_size`, `review_status`, `ci_build_state`, `branch_staleness_days`
@@ -37,7 +67,7 @@
 
 ---
 
-## 3. Rules (Jev Decision Primitives)
+### 1.4 Rules (Jev Decision Primitives)
 
 ### R-1: CI Build State Priority Rule
 ```
@@ -84,7 +114,7 @@ Subsequent rules shall be skipped.
 
 ---
 
-## 4. Scenarios
+### 1.5 Scenarios
 
 ### S-1: High Priority CI Failure
 ```
@@ -153,7 +183,7 @@ Expected Output:
 
 ---
 
-## 5. Non-Functional Requirements
+### 1.6 Non-Functional Requirements
 
 ### NFR-1: Latency
 The evaluation function shall complete within 500ms for 95% of requests.
@@ -166,7 +196,7 @@ The system shall handle at least 100 PR evaluations per minute during peak hours
 
 ---
 
-## 6. Data Dictionary
+### 1.7 Data Dictionary
 
 | Field | Type | Description |
 |-------|------|-------------|
