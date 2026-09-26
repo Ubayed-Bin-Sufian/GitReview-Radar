@@ -1,11 +1,11 @@
 # Technology Stack: PR-Pulse
 
 ## Runtime & Frameworks
-- **Language:** TypeScript (Node.js 20.x / ES2022)
+- **Language:** TypeScript (Node.js 24.x / ES2022)
 - **AI Decision Model:** TypeSafe AI Jev API (System One parallel evaluation)
 - **HTTP Client:** Native `fetch` / `undici` (for Node.js environment)
 - **Testing:** Jest + `fast-check` for Property-Based Testing (PBT)
-- **Deployment Platform:** 100% Stateless Serverless on AWS (Lambda + API Gateway + EventBridge)
+- **Deployment Platform:** AWS Lambda + API Gateway + EventBridge + S3. User data is in Supabase.
 
 ## Core Dependencies
 
@@ -51,7 +51,7 @@ Single JSON payload containing all primitive questions:
 - Pre-commit hooks via Husky for linting and type checking
 
 ## Deployment Target
-- **Runtime:** Node.js 20.x
+- **Runtime:** Node.js 24.x
 - **Memory:** 512MB
 - **Timeout:** 30s
 - **Cold Start Optimization:** SnapStart or provisioned concurrency for production

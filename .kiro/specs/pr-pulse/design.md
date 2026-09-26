@@ -52,7 +52,7 @@ PR-Pulse (GitReview Radar) is a serverless application that evaluates Pull Reque
            ▼                                     ▼                                 ▼
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │                            AWS Infrastructure                                     │
-│  • Lambda (Node.js 20.x or Python 3.12)                                        │
+│  • Lambda (Node.js 24.x)                                                       │
 │  • API Gateway (HTTP API for low latency)                                      │
 │  • EventBridge (Cron for scheduled evaluations)                                │
 │  • SNS (Notifications for high-priority PRs)                                   │
@@ -79,7 +79,7 @@ PR-Pulse (GitReview Radar) is a serverless application that evaluates Pull Reque
 
 ### 1. Lambda Evaluator Function
 
-**Runtime**: Node.js 20.x or Python 3.12
+**Runtime**: Node.js 24.x
 
 **Input**: PR Metadata JSON
 ```json

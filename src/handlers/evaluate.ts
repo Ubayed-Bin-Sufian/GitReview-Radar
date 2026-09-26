@@ -56,3 +56,5 @@ export async function evaluateHandler(
     return handleApiError(error);
   }
 }
+
+export const handler = evaluateHandler;

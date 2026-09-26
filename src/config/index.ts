@@ -13,6 +13,9 @@ export interface Config {
   readonly jevEndpoint: string;
   readonly awsRegion: string;
   readonly digestWebhookUrl?: string;
+  readonly supabaseUrl: string;
+  readonly supabaseAnonKey: string;
+  readonly supabaseServiceRoleKey: string;
   readonly databaseTableName: string;
   readonly rateLimitPerMinute: number;
   readonly logLevel: 'DEBUG' | 'INFO' | 'WARN' | 'ERROR';
@@ -21,11 +24,14 @@ export interface Config {
 // Base configuration
 const baseConfig: Config = {
   environment: getEnvironment(),
-  jevApiKey: getRequiredEnv('JEV_API_KEY'),
+  jevApiKey: process.env.JEV_API_KEY || '',
   jevEndpoint: process.env.JEV_ENDPOINT || 'https://api.typesafe.ai/jev/v1/chat/completions',
   awsRegion: process.env.AWS_REGION || 'us-east-1',
   digestWebhookUrl: process.env.DIGEST_WEBHOOK_URL,
-  databaseTableName: process.env.DATABASE_TABLE_NAME || 'PRPulse-Cache-dev',
+  supabaseUrl: process.env.SUPABASE_URL || '',
+  supabaseAnonKey: process.env.SUPABASE_ANON_KEY || '',
+  supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+  databaseTableName: process.env.DATABASE_TABLE_NAME || '',
   rateLimitPerMinute: parseInt(process.env.RATE_LIMIT_PER_MINUTE || '60', 10),
   logLevel: (process.env.LOG_LEVEL as Config['logLevel']) || 'INFO',
 };
@@ -84,10 +90,6 @@ export function getConfig(): Config {
  */
 export function validateConfig(config: Config): boolean {
   const errors: string[] = [];
-
-  if (!config.jevApiKey) {
-    errors.push('JEV_API_KEY is required');
-  }
 
   if (!config.awsRegion) {
     errors.push('AWS_REGION is required');
