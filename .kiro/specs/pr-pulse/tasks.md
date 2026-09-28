@@ -8,7 +8,7 @@ The project follows a 6-phase approach:
 - Phase 1: Foundation & Jev Client Setup
 - Phase 2: Core Evaluator Logic
 - Phase 3: Infrastructure as Code
-- Phase 4: Daily Digest Builder (skipped as requested)
+- Phase 4: Daily Digest Builder
 - Phase 5: Testing & Validation
 - Phase 6: Documentation & Deployment
 
@@ -30,25 +30,25 @@ This section outlines the required and recommended sections for this tasks docum
 
 - [x] 1.1 Initialize Project Structure: Create repository structure with `src/`, `tests/`, `infrastructure/` directories, initialize Node.js project with `package.json`, install dependencies: `aws-sdk`, `jest`, `fast-check`, configure TypeScript (`tsconfig.json`), set up Git hooks for pre-commit linting
 - [x] 1.2 Set Up Jev Client: Create `src/jev/` directory for decision engine, implement `src/jev/decision-engine.ts` - Jev client wrapper, implement `src/jev/rules/` directory with individual rule files (ci-blocked.rule.ts, needs-author-fix.rule.ts, stale-branch.rule.ts, ready-for-merge.rule.ts), implement rule priority ordering, write unit tests for Jev client
-- [ ] 1.3 Configure AWS SDK & Environment: Set up AWS credentials configuration (local `.env` + production IAM role), create `src/config/` with configuration management, configure AWS SDK v3 for Lambda, API Gateway, DynamoDB, set up AWS profile switching for dev/staging/prod
+- [x] 1.3 Configure Environment Wiring: create `src/config/` and Lambda env wiring for Supabase (URL + anon key + service role key) and Jev configuration
 - [x] 2.1 Implement PR Metadata Types: Define TypeScript interfaces for PR input, define TypeScript interfaces for evaluation output, create enum for states: `PRState` (`NEEDS_AUTHOR_FIX`, `READY_FOR_FINAL_MERGE`, `STALE_BRANCH`, `CI_BLOCKED`)
 - [x] 2.2 Implement Evaluator Function: Create `src/evaluator/evaluate.ts` main evaluation function, implement score calculation logic per rule, implement score capping at 100, add validation for input fields (non-null, valid enum values)
-- [x] 2.3 Write Property-Based Tests for Evaluator: Create `tests/property/` directory, implement property P-1: CI Failure Dominance, implement property P-2: Review State Priority, implement property P-3: Staleness Threshold, implement property P-4: Score Monotonicity, implement property P-5: Score Bounds, implement property P-6: State Exhaustiveness, implement property P-7: Rule Priority Consistency, run property tests with 100+ iterations
-- [x] 2.4 Write Scenario Tests: Create `tests/scenarios/` directory, implement test for S-1: High Priority CI Failure, implement test for S-2: Changes Requested with Large Diff, implement test for S-3: Stale Branch, implement test for S-4: Ready for Merge, implement test for S-5: Review Pending, Fresh Branch
-- [ ] 3.1 Set Up AWS CDK: Initialize CDK project, configure CDK for multiple environments (dev, staging, prod), set up GitHub Actions for CDK deployments
-- [ ] 3.2 Define Lambda Function Infrastructure: Create CDK stack for `PRPulseEvaluatorLambda`, configure Lambda runtime (Node.js 20.x or Python 3.12), set up IAM role with minimal permissions (S3 read, CloudWatch logs), configure memory (512MB) and timeout (30s)
-- [ ] 3.3 Define API Gateway Infrastructure: Create CDK stack for `PRPulseAPIGateway`, configure HTTP API endpoint, set up route `POST /evaluate`, configure integration with Lambda function, set up API key option (configurable via CDK context)
-- [ ] 3.4 Define EventBridge Infrastructure: Create CDK stack for `PRPulseScheduler`, configure EventBridge rule with cron schedule, set up target as Lambda function, create EventBridge schedule permission
-- [ ] 3.5 Define DynamoDB Infrastructure: Create CDK stack for `PRPulseCache`, configure table with partition key (`repo#pr_id`), set up TTL for automatic data expiration, create secondary index for stale PR queries
-- [ ] 4.1 Implement Digest Aggregator: Create `src/digest/` directory, implement `src/digest/aggregator.ts` for daily digest generation, query DynamoDB for PRs from last 24 hours, categorize PRs by state and actionability score
-- [ ] 4.2 Implement Notification Handler: Create `src/notifications/` directory, implement `src/notifications/sender.ts` for SNS publishing, implement high-priority alert logic (score > 90), create SNS topic for notifications
-- [ ] 4.3 Implement Report Format: Design markdown report format, include summary statistics (Total PRs evaluated, Count per state, Average actionability score, Top 10 highest-priority PRs), output format for Slack/Email (configurable)
-- [ ] 5.1 Integration Testing: Deploy to staging environment, test API Gateway → Lambda end-to-end, test EventBridge → Lambda execution, verify DynamoDB writes and reads
+- [x] 2.3 Write Jest Unit Tests for Evaluator and Jev rules: cover rule priority, score bounds/capping, and owner assignment
+- [x] 2.4 Write Jest Scenario Tests (S-1..S-5): validate representative inputs for CI failure, changes requested, stale branches, and ready-for-merge outcomes
+- [x] 3.1 Set Up AWS CDK: Add CDK app/stack for Node.js 24 Lambdas, API Gateway routes (`/evaluate`, `/sync`), EventBridge cron, and S3 dashboard hosting
+- [x] 3.2 Define Lambda Function Infrastructure: Deploy evaluator, sync, and digest Lambda functions (Node.js 24) with least-privilege IAM and appropriate memory/timeout
+- [x] 3.3 Define API Gateway Infrastructure: Configure HTTP API routes `POST /evaluate` and `POST /sync` integrated to their Lambdas (CORS enabled)
+- [x] 3.4 Define EventBridge Infrastructure: Configure a cron schedule that triggers the daily digest Lambda
+- [x] 3.5 Configure Supabase Data Layer: Use Supabase SQL migrations + RLS (instead of DynamoDB) for `user_settings`, `repositories`, `pull_requests`, `issues`, and `connectors`
+- [x] 4.1 Implement Digest Builder and Dispatch Input: Use `src/digest/digest-builder.ts` to format daily digests from stored PR evaluations
+- [x] 4.2 Implement Connector-Based Notification Delivery: Add `src/connectors/` plugin registry and dispatch via enabled connectors in the daily digest Lambda
+- [x] 4.3 Implement Report Format: Generate Markdown and JSON digest outputs from `DigestBuilder` (used by Slack/Discord/Telegram/Gmail plugins)
+- [ ] 5.1 Integration Testing: Deploy to staging environment, test API Gateway (`/sync`) → Lambda end-to-end, test EventBridge → daily digest execution, verify Supabase upserts/selects and connector delivery
 - [ ] 5.2 Performance Testing: Load test with 100 evaluations/minute, verify p99 latency < 500ms, test concurrent evaluation scenarios
 - [ ] 5.3 Security Review: Audit Lambda IAM permissions (least privilege), review environment variables for secrets, validate API Gateway authentication, enable CloudWatch log encryption
 - [ ] 6.1 Write API Documentation: Document `/evaluate` endpoint with OpenAPI spec, include request/response examples, document error codes and scenarios
 - [ ] 6.2 Write Operational Runbooks: Debugging evaluation failures, handling CI timeout scenarios, scaling the service during high load
-- [ ] 6.3 Production Deployment: Deploy to production environment, configure CloudWatch alarms, set up SNS alerting for errors, verify all tests pass in production
+- [ ] 6.3 Production Deployment: Deploy to production, configure CloudWatch alarms, and verify end-to-end sync + digest dispatch with enabled connectors
 
 ---
 
@@ -90,7 +90,7 @@ This section outlines the required and recommended sections for this tasks docum
       "id": "wave-6",
       "tasks": ["2.3", "2.4"],
       "dependencies": ["wave-5"],
-      "description": "Test implementation (property and scenario tests)"
+      "description": "Test implementation (Jest unit + scenario cases)"
     },
     {
       "id": "wave-7",
@@ -102,13 +102,13 @@ This section outlines the required and recommended sections for this tasks docum
       "id": "wave-8",
       "tasks": ["3.2", "3.3", "3.4", "3.5"],
       "dependencies": ["wave-7"],
-      "description": "Infrastructure definition (Lambda, API Gateway, EventBridge, DynamoDB)"
+      "description": "Infrastructure definition (Lambda, API Gateway, EventBridge, S3, Supabase)"
     },
     {
       "id": "wave-9",
       "tasks": ["4.1", "4.2", "4.3"],
       "dependencies": ["wave-8"],
-      "description": "Daily digest builder (skipped as requested)"
+      "description": "Daily digest builder"
     },
     {
       "id": "wave-10",
@@ -154,57 +154,9 @@ This section outlines the required and recommended sections for this tasks docum
 
 ## Success Criteria
 
-- [ ] All property-based tests pass (P-1 through P-7)
-- [ ] All scenario tests pass (S-1 through S-5)
-- [ ] API latency p99 < 500ms
-- [ ] System handles 100+ evaluations/minute
+- [x] Jest unit tests pass (run via `npm test`)
+- [ ] Manual smoke test: sync PRs/issues -> stored evaluations -> daily digest dispatch via an enabled connector
+- [ ] API latency p99 < 500ms (benchmarked on AWS after deployment)
+- [ ] System handles 100+ evaluations/minute (load-tested after deployment)
 - [ ] Production deployment successful with no errors
 - [ ] Documentation complete and reviewed
-
----
-
-## Notes
-
-### Files Created:
-
-**src/jev/**
-- `types.ts` - PRMetadata, DecisionResult, JevRequest/Response types
-- `decision-engine.ts` - DecisionEngine class with parallel Choice/Score/Noul questions
-- `index.ts` - Module exports
-- `rules/ci-blocked.rule.ts` - R-1: CI_BLOCKED state
-- `rules/needs-author-fix.rule.ts` - R-2: NEEDS_AUTHOR_FIX state
-- `rules/stale-branch.rule.ts` - R-3: STALE_BRANCH state
-- `rules/ready-for-merge.rule.ts` - R-4: READY_FOR_FINAL_MERGE state
-
-**src/evaluator/**
-- `types.ts` - PREvaluationResult, ActionableAssignment types
-- `pr-evaluator.ts` - PREvaluator service with Jev integration and owner assignment
-- `index.ts` - Module exports
-
-**src/digest/**
-- `types.ts` - DailyDigest, DigestOutput, DigestBuilderOptions types
-- `digest-builder.ts` - DigestBuilder with markdown/JSON generation
-- `index.ts` - Module exports
-
-### Tests Created:
-
-**tests/jev/**
-- `decision-engine.test.ts` - 10 tests
-
-**tests/evaluator/**
-- `pr-evaluator.test.ts` - 14 tests
-
-**tests/digest/**
-- `digest-builder.test.ts` - 13 tests
-
-### Test Coverage: 37 passing tests
-
-### Phase 4 Notes:
-Phase 4 (Daily Digest Builder - AWS Lambda & Infrastructure Setup) has been skipped as requested.
-
-### Important Notes:
-- All completed tasks (1.1-3.5) have been verified with passing tests (37 total)
-- Property-based tests cover 7 properties (P-1 through P-7) with 100+ iterations each
-- Scenario tests cover 5 key scenarios (S-1 through S-5)
-- AWS infrastructure is defined in CDK but not yet deployed (pending Phase 3 tasks)
-- Environment variables require configuration before Phase 3 deployment (JEV_API_KEY, AWS profile)

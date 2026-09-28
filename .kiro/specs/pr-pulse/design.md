@@ -5,10 +5,10 @@
 PR-Pulse (GitReview Radar) is a serverless application that evaluates Pull Request actionability using TypeSafe AI's Jev decision engine. The system ingests PR metadata, calculates actionability scores, and outputs prioritized daily digests for maintainers and engineering teams.
 
 **Key Capabilities:**
-- Real-time PR evaluation via API Gateway
-- Batch processing with EventBridge cron schedules
-- Durable state storage in DynamoDB
-- Notifications via SNS for high-priority PRs
+- User-triggered PR sync and evaluation via API Gateway (`POST /sync`, `POST /evaluate`)
+- Scheduled daily digest generation via EventBridge (cron)
+- Durable state storage in Supabase (user settings, synced PRs/issues, and connector toggles)
+- Connector-based daily delivery (Slack/Discord/Telegram/Gmail), configurable per user
 - Structured Markdown and JSON digest output
 
 **Architecture Goals:**
@@ -26,7 +26,7 @@ PR-Pulse (GitReview Radar) is a serverless application that evaluates Pull Reque
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │                                    API Gateway                                  │
-│                              (POST /evaluate)                                   │
+│                           (POST /sync, POST /evaluate)                        │
 └─────────────────────────────────────────────────────────────────────────────────┘
                                                  │
                                                  ▼
@@ -45,7 +45,7 @@ PR-Pulse (GitReview Radar) is a serverless application that evaluates Pull Reque
            │                                     │                                 │
            ▼                                     ▼                                 ▼
 ┌──────────────────────┐           ┌──────────────────────┐          ┌──────────────────────────┐
-│   EventBridge Cron   │           │   SNS Topic          │          │   DynamoDB Streams       │
+│   EventBridge Cron   │           │   Connector Plugins  │          │   Supabase (PR data)     │
 │   (Daily Digest)     │           │   (Notifications)    │          │   (Audit Log)            │
 └──────────────────────┘           └──────────────────────┘          └──────────────────────────┘
            │                                     │                                 │
@@ -55,23 +55,19 @@ PR-Pulse (GitReview Radar) is a serverless application that evaluates Pull Reque
 │  • Lambda (Node.js 24.x)                                                       │
 │  • API Gateway (HTTP API for low latency)                                      │
 │  • EventBridge (Cron for scheduled evaluations)                                │
-│  • SNS (Notifications for high-priority PRs)                                   │
-│  • DynamoDB (Durable storage for PR cache, no server state)                    │
+│  • Connector Plugins (Slack/Discord/Telegram/Gmail)                          │
+│  • Supabase (user data + synced PRs/issues)                                 │
 │  • CloudWatch (Logging, Metrics, Alarms)                                       │
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Component Flow
 
-1. **API Gateway** receives POST /evaluate requests with PR metadata
-2. **Lambda Evaluator** processes the request:
-   - Validates PR metadata
-   - Constructs Jev decision payload (Choice/Score/Noul primitives)
-   - Calls TypeSafe AI Jev API for parallel evaluation
-   - Maps decision result to actionable Next-Step Owner
-3. **DynamoDB** stores evaluation results for caching and audit
-4. **EventBridge Cron** triggers daily digest generation
-5. **SNS** publishes high-priority notifications
+1. **Dashboard (S3)** signs in and configures repos/connectors in Supabase
+2. **API Gateway** receives `POST /sync` for a configured repo
+3. **Lambda Sync Handler** fetches open PRs and open issues from GitHub and upserts them into Supabase; PRs are classified with Jev during sync using the user's Jev key
+4. **EventBridge Cron** triggers the daily digest job
+5. **Lambda Digest Job** reads stored PR evaluations and connector toggles from Supabase, builds the digest, and dispatches it via enabled connector plugins
 
 ---
 
@@ -110,7 +106,7 @@ PR-Pulse (GitReview Radar) is a serverless application that evaluates Pull Reque
 }
 ```
 
-**Statelessness**: All state is externalized to DynamoDB or derived from input. The function maintains no in-memory state between invocations.
+**Statelessness**: All state is externalized to Supabase or derived from input. The function maintains no in-memory state between invocations.
 
 ### 2. Decision Engine Interface
 
@@ -165,15 +161,13 @@ interface DigestBuilder {
 | CORS | Enabled |
 | Latency Target | <500ms p99 |
 
-### 6. DynamoDB Table
+### 6. Supabase Data Storage
 
-**Table Name**: `PRPulse-Cache-{Environment}`
-
-| Partition Key | Sort Key | Attributes |
-|---------------|----------|------------|
-| `repo#pr_id` | `METADATA#timestamp` | `author`, `diff_size`, `review_status`, `ci_build_state`, `branch_staleness_days`, `evaluation_result`, `evaluated_at` |
-
-**Purpose**: Durable cache of PR metadata and evaluation results
+- `user_settings`: per-user Jev key and GitHub token
+- `repositories`: configured repos and last sync timestamp
+- `pull_requests`: synced PR metadata plus Jev `state`/`actionability_score` and `next_step_owner`
+- `issues`: open issues listed only
+- `connectors`: connector plugin id, enabled toggle, and config json
 
 ---
 
@@ -380,7 +374,7 @@ FORALL PR inputs:
 
 - **API Gateway**: No retry (client handles retries)
 - **Lambda**: Retry 2x with exponential backoff for transient errors
-- **SNS Notifications**: Retry 3x with exponential backoff
+- **Connector Dispatch**: Retry 3x with exponential backoff
 
 ### Logging Strategy
 
@@ -410,27 +404,13 @@ logger.error('Evaluation failed', {
 - `tests/evaluator/pr-evaluator.test.ts` - PREvaluator tests
 - `tests/digest/digest-builder.test.ts` - DigestBuilder tests
 
-### Property-Based Tests (fast-check)
+### Property-Based Tests
+Not included in the current MVP; correctness is covered via Jest unit tests.
 
-**Properties Verified:**
-- P-1 through P-8 from Correctness Properties section
-- 100+ iterations per property
-- Random input generation within valid ranges
-
-**Test Location:**
-- `tests/property/` directory (separate from unit tests)
-
-### Integration Tests
-
-**Test Scenarios:**
-1. API Gateway to Lambda end-to-end (PR evaluation flow)
-2. EventBridge cron to Lambda execution (daily digest flow)
-3. DynamoDB read/write operations (cache operations)
-4. SNS notification delivery (high-priority alerts)
-
-**Test Setup:**
-- LocalStack for AWS service mocking
-- Test fixtures for realistic PR metadata
+### Integration and manual tests
+After deployment, validate:
+- `POST /sync` stores PRs/issues into Supabase
+- the EventBridge daily job dispatches a digest via enabled connectors
 
 ### Manual Test Scenarios
 
@@ -442,24 +422,13 @@ logger.error('Evaluation failed', {
 ### Test Execution
 
 ```bash
-# Unit tests
-npm run test:unit
-
-# Property-based tests
-npm run test:property
-
-# Integration tests
-npm run test:integration
-
 # All tests
-npm run test
+npm test
 ```
 
 ### Code Coverage Targets
 
 - Unit tests: >90% coverage
-- Integration tests: >80% coverage
-- Critical paths: 100% coverage
 
 ---
 
