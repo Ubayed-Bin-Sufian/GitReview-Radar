@@ -404,8 +404,81 @@ logger.error('Evaluation failed', {
 - `tests/evaluator/pr-evaluator.test.ts` - PREvaluator tests
 - `tests/digest/digest-builder.test.ts` - DigestBuilder tests
 
-### Property-Based Tests
-Not included in the current MVP; correctness is covered via Jest unit tests.
+### Property-Based Tests (fast-check)
+
+**Purpose:**
+Comprehensive validation of the 8 correctness properties (P-1 through P-8) using mathematical property testing. Unlike unit tests that verify specific examples, property-based tests validate general behavioral properties across hundreds of automatically generated inputs.
+
+**Testing Strategy:**
+- Use `fast-check` library for property-based testing
+- Run 100+ iterations per property to ensure comprehensive coverage
+- Separate PBT tests from unit tests for clear organization
+- Target edge cases and boundary conditions that manual examples might miss
+
+**Test File Organization:**
+```
+tests/
+├── jev/                     # Unit tests for Jev decision engine
+│   └── decision-engine.test.ts
+├── evaluator/               # Unit tests for PR evaluation
+│   └── pr-evaluator.test.ts
+├── digest/                  # Unit tests for digest builder
+│   └── digest-builder.test.ts
+└── property/                # Property-based tests (PBT)
+    ├── property-tests.test.ts  # All 8 correctness properties
+```
+
+**Property Testing Standards:**
+- Each property test runs at least 100 iterations (configurable)
+- Use `fc.assert(fc.property(...), { numRuns: 100 })` pattern
+- Include boundary-specific generators (e.g., `fc.integer({ min: 0, max: 7 })` for threshold testing)
+- Combine multiple generators to test interaction effects
+- Use `fc.oneof()` and `fc.constant()` for state-specific testing
+
+**Implemented Correctness Properties:**
+1. **P-1: CI Failure Dominance** - CI failures always result in CI_BLOCKED state with score >= 95
+2. **P-2: Review State Priority** - Changes requested takes priority over branch staleness
+3. **P-3: Staleness Threshold** - Clear boundary at 7 days for stale detection
+4. **P-4: Ready for Merge Fallthrough** - Clean PRs resolve to READY_FOR_FINAL_MERGE
+5. **P-5: Score Monotonicity** - Larger diffs increase scores for same state
+6. **P-6: Score Bounds** - All scores remain in valid range [0, 100]
+7. **P-7: State Exhaustiveness** - Exactly one output state from defined set
+8. **P-8: Rule Priority Consistency** - Rules applied in correct priority order
+
+**Example Property Test Structure:**
+```typescript
+import * as fc from 'fast-check';
+import { evaluatePR } from '../src/evaluator';
+
+describe('Property-Based Tests', () => {
+  describe('P-1: CI Failure Dominance', () => {
+    it('should always return CI_BLOCKED when CI is FAILED', () => {
+      fc.assert(
+        fc.property(
+          fc.integer({ min: 0, max: 1000 }),  // diff_size
+          fc.integer({ min: 0, max: 30 }),    // branch_staleness_days
+          (diffSize, staleness) => {
+            const pr = {
+              diff_size: diffSize,
+              review_status: 'APPROVED',
+              ci_build_state: 'FAILED',  // Always FAILED
+              branch_staleness_days: staleness,
+              pr_id: 'test',
+              repo: 'test',
+              author: 'test',
+            };
+
+            const result = evaluatePR(pr);
+            expect(result.state).toBe('CI_BLOCKED');
+            expect(result.actionability_score).toBeGreaterThanOrEqual(95);
+          }
+        ),
+        { numRuns: 100 }  // 100 iterations
+      );
+    });
+  });
+});
+```
 
 ### Integration and manual tests
 After deployment, validate:
@@ -422,13 +495,20 @@ After deployment, validate:
 ### Test Execution
 
 ```bash
-# All tests
+# All tests (unit + property-based)
 npm test
+
+# Unit tests only
+npm run test:unit
+
+# Property-based tests only
+npm run test:property
 ```
 
 ### Code Coverage Targets
 
 - Unit tests: >90% coverage
+- Property-based tests: 100% coverage of correctness properties
 
 ---
 

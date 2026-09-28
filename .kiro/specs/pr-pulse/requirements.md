@@ -285,7 +285,30 @@ The system shall handle at least 100 PR evaluations per minute during peak hours
 
 
 
-### 1.7 Data Dictionary
+### 1.7 Testing Strategy
+
+**Unit Tests (Jest):**
+- Decision rules in isolation
+- Boundary conditions (diff_size = 0, branch_staleness_days = 7)
+- Error handling paths
+- Edge cases (empty strings, null values, extreme values)
+
+**Property-Based Tests (fast-check):**
+- Validate 8 correctness properties across hundreds of generated inputs
+- Use mathematical properties instead of specific examples
+- Run 100+ iterations per property for comprehensive coverage
+- Separate test files in `tests/property/` directory
+
+**Test Organization:**
+```
+tests/
+├── jev/decision-engine.test.ts
+├── evaluator/pr-evaluator.test.ts
+├── digest/digest-builder.test.ts
+└── property/property-tests.test.ts
+```
+
+### 1.8 Data Dictionary
 
 
 | Field                   | Type    | Description                                                                             |
