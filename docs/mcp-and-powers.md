@@ -67,29 +67,6 @@ aws configure --profile default
 
 ---
 
-### 3. Supabase (`power-supabase-hosted-supabase`)
-
-**Purpose:** Supabase database integration for Postgres operations, authentication, and real-time features.
-
-**Configuration:**
-```json
-{
-  "url": "https://mcp.supabase.com/mcp",
-  "disabled": false
-}
-```
-
-**Prerequisites:**
-- Set environment variable: `SUPABASE_ACCESS_TOKEN`
-- Obtain from: https://supabase.com → Account Settings → Access Tokens
-
-**Setup:**
-```bash
-export SUPABASE_ACCESS_TOKEN=your-supabase-token-here
-```
-
----
-
 ## Kiro Powers
 
 ### Installed Powers
@@ -97,7 +74,6 @@ export SUPABASE_ACCESS_TOKEN=your-supabase-token-here
 | Power | Purpose | Status |
 |-------|---------|--------|
 | `aws-security-agent` | Security scanning, threat modeling, pentesting | ✅ Active |
-| `supabase-hosted` | Supabase database integration | ⚠️ Auth required |
 
 ### Power Storage Location
 
@@ -105,8 +81,7 @@ Powers are installed locally at:
 ```
 ~/.kiro/powers/installed/
 ├── aws-security-agent/
-├── aws-security-agent-kiro-power/
-└── supabase-hosted/
+└── aws-security-agent-kiro-power/
 ```
 
 **Note:** Powers are user-specific and should NOT be committed to version control. They are installed automatically when first used.
@@ -137,18 +112,6 @@ Powers are installed locally at:
    /security-agent get_scan_findings(scan_id="<id>")
    ```
 
-### Supabase
-
-1. **Activate power:**
-   ```
-   /power activate supabase-hosted
-   ```
-
-2. **Read workflow documentation:**
-   ```
-   /supabase-hosted readSteering supabase-hosted-database-workflow.md
-   ```
-
 ---
 
 ## Environment-Specific Notes
@@ -164,7 +127,6 @@ Powers are installed locally at:
 
 1. MCP servers are not used in CI/CD pipeline
 2. AWS operations use IAM roles attached to CI/CD runners
-3. Supabase operations use service role tokens stored in CI/CD secrets
 
 ---
 
@@ -174,11 +136,6 @@ Powers are installed locally at:
 - Verify AWS credentials: `aws sts get-caller-identity`
 - Check region configuration: `aws configure get region`
 - Ensure internet connectivity to AWS MCP endpoint
-
-### Supabase auth-required
-- Set `SUPABASE_ACCESS_TOKEN` environment variable
-- Verify token has required permissions for MCP access
-- Restart Kiro after setting environment variable
 
 ### Security Agent setup fails
 - Verify IAM permissions for creating agent spaces and roles
