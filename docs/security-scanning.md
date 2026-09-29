@@ -4,6 +4,21 @@
 
 This document describes how the AWS Security Agent power was used to identify security issues in the GitReview-Radar project.
 
+## Prerequisites
+
+Before using the AWS Security Agent power:
+
+1. **AWS CLI** — installed and configured with credentials
+   ```bash
+   aws configure --profile default
+   ```
+
+2. **uv** — Python package manager required for the Security Agent MCP server
+   ```bash
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   export PATH="$HOME/.local/bin:$PATH"
+   ```
+
 ## Setup Process
 
 ### 1. Prerequisites Verification

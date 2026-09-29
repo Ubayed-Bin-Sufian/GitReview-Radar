@@ -53,6 +53,13 @@ aws configure --profile default
 }
 ```
 
+**Prerequisites:**
+- `uv` (Python package manager) installed
+  ```bash
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  # Then restart your shell or run: export PATH="$HOME/.local/bin:$PATH"
+  ```
+
 **Setup:**
 1. Run `setup_check` to verify prerequisites
 2. Run `setup` to provision agent space and IAM service role
