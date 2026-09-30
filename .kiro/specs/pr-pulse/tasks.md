@@ -47,7 +47,7 @@ This section outlines the required and recommended sections for this tasks docum
 - [ ] 5.1 Integration Testing: Deploy to staging environment, test API Gateway (`/sync`) → Lambda end-to-end, test EventBridge → daily digest execution, verify Supabase upserts/selects and connector delivery
 - [ ] 5.2 Performance Testing: Load test with 100 evaluations/minute, verify p99 latency < 500ms, test concurrent evaluation scenarios
 - [ ] 5.3 Security Review: Audit Lambda IAM permissions (least privilege), review environment variables for secrets, validate API Gateway authentication, enable CloudWatch log encryption, configure CloudWatch alarms for Lambda errors >1% and API Gateway 5xx errors >1%
-- [ ] 5.4 Property-Based Testing: Create property test file, implement P-1 through P-8 correctness properties using fast-check library, run 100+ iterations per property, verify test coverage and integration with existing unit tests
+- [x] 5.4 Property-Based Testing: Create property test file, implement P-1 through P-8 correctness properties using fast-check library, run 100+ iterations per property, verify test coverage and integration with existing unit tests
 - [ ] 6.1 Write API Documentation: Document `/evaluate` endpoint with OpenAPI spec, include request/response examples, document error codes and scenarios
 - [ ] 6.2 Write Operational Runbooks: Debugging evaluation failures, handling CI timeout scenarios, scaling the service during high load
 - [ ] 6.3 Production Deployment: Deploy to production, configure CloudWatch alarms for p99 latency >500ms and throughput issues, and verify end-to-end sync + digest dispatch with enabled connectors
