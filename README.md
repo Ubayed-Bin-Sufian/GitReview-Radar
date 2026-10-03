@@ -22,7 +22,7 @@ flowchart LR
     SyncLambda -->|Jev evaluate PRs using user Jev key| Jev[Jev SystemOne API]
   end
 
-  Cron[EventBridge Cron (daily)] --> DigestLambda[Lambda: Digest Job]
+  Cron[EventBridge Cron daily] --> DigestLambda[Lambda: Digest Job]
   DigestLambda -->|Read evaluations + enabled connectors| Supabase
   DigestLambda -->|Dispatch digest| Connectors[Connector Plugins (Slack/Telegram/etc.)]
 end
