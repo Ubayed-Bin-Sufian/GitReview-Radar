@@ -19,7 +19,7 @@ let evaluator: PREvaluator | null = null;
 function getEvaluator(): PREvaluator {
   if (!evaluator) {
     const config = getConfig();
-    evaluator = new PREvaluator(new DecisionEngine(config.jevApiKey));
+    evaluator = new PREvaluator(new DecisionEngine(config.jevApiKey, config.jevEndpoint));
   }
   return evaluator;
 }

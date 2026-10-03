@@ -19,7 +19,8 @@ import {
 const JEV_ENDPOINT = 'https://api.typesafe.ai/jev/v1/chat/completions';
 
 // Default model to use
-const DEFAULT_MODEL = 'jev-1';
+// TypeSafe docs use aliases like `jev-latest`. Using a non-existent model will return 400 Unknown model.
+const DEFAULT_MODEL = 'jev-latest';
 
 /**
  * TypeSafe Jev Decision Engine
@@ -52,16 +53,12 @@ export class DecisionEngine {
    * - Noul: Boolean checks for rule verification
    */
   async evaluate(pr: PRMetadata): Promise<DecisionResult> {
-    const questions = this.buildQuestions(pr);
-    const systemPrompt = this.buildSystemPrompt();
     const userPrompt = this.buildUserPrompt(pr);
+    const questions = this.buildQuestionsMap(pr);
 
     const request: JevRequest = {
       model: this.model,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
+      state: userPrompt,
       questions,
     };
 
@@ -71,53 +68,61 @@ export class DecisionEngine {
   }
 
   /**
-   * Build parallel Jev questions for the PR evaluation
+   * Build parallel Jev questions for the PR evaluation (SystemOne request shape)
    */
-  private buildQuestions(pr: PRMetadata): JevQuestion[] {
-    const choiceQuestion: JevChoiceQuestion = {
+  private buildQuestionsMap(pr: PRMetadata): Record<string, any> {
+    const actionState = {
       type: 'choice',
-      name: 'action_state',
-      description: 'Determine the appropriate action state for this PR',
-      choices: [
-        'NEEDS_AUTHOR_FIX',
-        'READY_FOR_FINAL_MERGE',
-        'STALE_BRANCH',
-        'CI_BLOCKED',
-      ],
+      instructions: 'Choose exactly one action_state.',
+      criteria: {
+        NEEDS_AUTHOR_FIX: 'Changes requested: author must update PR',
+        READY_FOR_FINAL_MERGE: 'Ready to merge: approved, not stale, no CI failure',
+        STALE_BRANCH: 'Branch is stale (> 7 days)',
+        CI_BLOCKED: 'CI is failing (FAILED)',
+      },
     };
 
-    const scoreQuestion: JevScoreQuestion = {
+    const actionabilityScore = {
       type: 'score',
-      name: 'actionability_score',
-      description: 'Calculate the actionability score (0-100) indicating urgency',
-      min: 0,
-      max: 100,
+      instructions: 'Score how urgently this PR needs attention (0-100).',
+      criteria: ['0', '25', '50', '75', '100'],
     };
 
-    // Noul questions for rule verification
-    const noulQuestions: JevNoulQuestion[] = [
-      {
-        type: 'noul',
-        name: 'ci_failed_check',
-        description: 'Check if CI build state is FAILED',
+    const ciFailedCheck = {
+      type: 'noul',
+      instructions: 'Is ci_build_state equal to FAILED?',
+      criteria: {
+        true: 'ci_build_state is FAILED',
+        false: 'ci_build_state is not FAILED',
       },
-      {
-        type: 'noul',
-        name: 'changes_requested_check',
-        description: 'Check if review status is CHANGES_REQUESTED',
-      },
-      {
-        type: 'noul',
-        name: 'stale_branch_check',
-        description: 'Check if branch is stale (days > 7)',
-      },
-    ];
+    };
 
-    return [
-      { type: 'choice', choice: choiceQuestion },
-      { type: 'score', score: scoreQuestion },
-      ...noulQuestions.map(noul => ({ type: 'noul', noul } as const)),
-    ];
+    const changesRequestedCheck = {
+      type: 'noul',
+      instructions: 'Is review_status equal to CHANGES_REQUESTED?',
+      criteria: {
+        true: 'review_status is CHANGES_REQUESTED',
+        false: 'review_status is not CHANGES_REQUESTED',
+      },
+    };
+
+    const staleBranchCheck = {
+      type: 'noul',
+      instructions: 'Is branch_staleness_days greater than 7?',
+      criteria: {
+        true: 'branch_staleness_days > 7',
+        false: 'branch_staleness_days <= 7',
+      },
+    };
+
+    // Keys must match how we parse answers in parseResponse()
+    return {
+      action_state: actionState,
+      actionability_score: actionabilityScore,
+      ci_failed_check: ciFailedCheck,
+      changes_requested_check: changesRequestedCheck,
+      stale_branch_check: staleBranchCheck,
+    };
   }
 
   /**
@@ -184,16 +189,51 @@ Provide your evaluation as JSON with action_state, actionability_score, and the 
    * Parse the Jev response into a DecisionResult
    */
   private parseResponse(response: JevResponse, pr: PRMetadata): DecisionResult {
-    const state = response.choices?.action_state as PRState;
-    const score = response.scores?.actionability_score ?? this.calculateScore(pr, state);
+    // Support both:
+    // 1) New SystemOne shape: response.answers.{...}
+    // 2) Legacy test/mock shape: response.choices / response.scores
+    const legacyChoices = (response as any).choices as undefined | Record<string, string>;
+    const legacyScores = (response as any).scores as undefined | Record<string, number>;
+
+    const actionStateAnswer = response.answers?.action_state;
+    const stateFromAnswers =
+      actionStateAnswer && actionStateAnswer.type === 'choice'
+        ? (actionStateAnswer.choice as PRState)
+        : undefined;
+
+    const stateFromLegacy = legacyChoices?.action_state as PRState | undefined;
+
+    const state = (stateFromAnswers || stateFromLegacy || this.calculateFallbackState(pr)) as PRState;
+
+    const scoreFromAnswers = (() => {
+      const scoreAnswer = response.answers?.actionability_score;
+      if (scoreAnswer && scoreAnswer.type === 'score' && typeof (scoreAnswer as any).score === 'number') {
+        return Math.min(Math.max(Math.round((scoreAnswer as any).score), 0), 100);
+      }
+      return undefined;
+    })();
+
+    const scoreFromLegacy = typeof legacyScores?.actionability_score === 'number'
+      ? Math.min(Math.max(Math.round(legacyScores.actionability_score), 0), 100)
+      : undefined;
+
+    const score = scoreFromAnswers ?? scoreFromLegacy ?? this.calculateScore(pr, state);
+
     const evaluatedRules = this.determineEvaluatedRules(pr, state);
 
     return {
       state,
       actionability_score: score,
       evaluated_rules: evaluatedRules,
-      confidence: response.choices?.action_state ? 0.95 : undefined,
+      confidence: actionStateAnswer ? 0.95 : undefined,
     };
+  }
+
+  private calculateFallbackState(pr: PRMetadata): PRState {
+    if (pr.ci_build_state === 'FAILED') return 'CI_BLOCKED';
+    if (pr.review_status === 'CHANGES_REQUESTED') return 'NEEDS_AUTHOR_FIX';
+    if (pr.branch_staleness_days > 7) return 'STALE_BRANCH';
+    return 'READY_FOR_FINAL_MERGE';
   }
 
   /**

@@ -102,22 +102,18 @@ export function validatePRMetadata(input: unknown): PRMetadata {
 
 // Jev Request/Response
 export interface JevRequest {
-  model?: string;
-  messages: Array<{
-    role: 'user' | 'system';
-    content: string;
-  }>;
-  questions: JevQuestion[];
+  state: string;
+  model: string;
+  // Questions are sent as a map keyed by your chosen id; answers are returned under the same keys.
+  questions: Record<string, any>;
 }
 
 export interface JevResponse {
-  choices?: Record<string, string>;
-  scores?: Record<string, number>;
-  nouls?: Record<string, boolean>;
   model?: string;
-  usage?: {
-    prompt_tokens: number;
-    completion_tokens: number;
-    total_tokens: number;
-  };
+  answers?: Record<
+    string,
+    | { type: 'choice'; choice: string; probabilities?: Record<string, number>; confidence?: number }
+    | { type: 'score'; score: number; legend?: Record<string, string>; probabilities?: Record<string, number>; confidence?: number }
+    | { type: 'noul'; noul: boolean; probabilities?: Record<string, number>; confidence?: number }
+  >;
 }

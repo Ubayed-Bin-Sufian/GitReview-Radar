@@ -53,6 +53,7 @@ export async function syncRepository(input: {
   name: string;
   token: string;
   jevApiKey: string;
+  jevEndpoint?: string;
   stored: StoredPull[];
   github?: GithubClient;
 }): Promise<{ pulls: SyncedPullRow[]; issues: SyncedIssueRow[] }> {
@@ -60,7 +61,9 @@ export async function syncRepository(input: {
   const repo = `${input.owner}/${input.name}`;
   const listed = await github.getJson<GithubPullDetail[]>(`/repos/${repo}/pulls?state=open&per_page=30`);
   const storedByNumber = new Map(input.stored.map((row) => [row.github_number, row]));
-  const evaluator = input.jevApiKey ? new PREvaluator(new DecisionEngine(input.jevApiKey)) : null;
+  const evaluator = input.jevApiKey
+    ? new PREvaluator(new DecisionEngine(input.jevApiKey, input.jevEndpoint))
+    : null;
   const pulls: SyncedPullRow[] = [];
 
   for (const summary of listed) {

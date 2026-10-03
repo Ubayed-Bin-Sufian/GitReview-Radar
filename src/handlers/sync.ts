@@ -53,6 +53,7 @@ export async function syncHandler(event: APIGatewayProxyEvent): Promise<APIGatew
       name: repo.name,
       token: settings.github_token,
       jevApiKey: settings.jev_api_key || '',
+      jevEndpoint: config.jevEndpoint,
       stored: stored || [],
     });
 

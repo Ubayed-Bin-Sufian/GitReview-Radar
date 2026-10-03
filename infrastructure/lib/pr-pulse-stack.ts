@@ -16,6 +16,8 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
 import * as path from 'path';
+import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
+import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
 
 export interface PrPulseStackProps extends cdk.StackProps {
   environment: string;
@@ -40,6 +42,8 @@ export class PrPulseStack extends cdk.Stack {
       SUPABASE_URL: process.env.SUPABASE_URL || '',
       SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || '',
       SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+      // Jev endpoint for TypeSafe SystemOne evaluations
+      JEV_ENDPOINT: process.env.JEV_ENDPOINT || 'https://api.typesafe.ai/v1/systemone',
     };
 
     const bundling = { minify: true, sourceMap: false, externalModules: ['@aws-sdk/*'] };
@@ -128,6 +132,19 @@ export class PrPulseStack extends cdk.Stack {
       destinationBucket: siteBucket,
     });
 
+    // CloudFront to provide HTTPS and a nicer public URL for judges.
+    // We use the S3 website endpoint as the origin since the dashboard is a static SPA.
+    const dashboardOrigin = new origins.HttpOrigin(siteBucket.bucketWebsiteDomainName, {
+      protocolPolicy: cloudfront.OriginProtocolPolicy.HTTP_ONLY,
+    });
+
+    const dashboardDistribution = new cloudfront.Distribution(this, 'DashboardDistribution', {
+      defaultBehavior: {
+        origin: dashboardOrigin,
+        viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+      },
+    });
+
     new cdk.CfnOutput(this, 'ApiEndpointUrl', {
       description: 'API Gateway endpoint URL. Set this as VITE_API_URL before building the dashboard.',
       value: httpApi.apiEndpoint,
@@ -136,6 +153,11 @@ export class PrPulseStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'DashboardUrl', {
       description: 'Public dashboard URL',
       value: siteBucket.bucketWebsiteUrl,
+    });
+
+    new cdk.CfnOutput(this, 'DashboardCloudFrontUrl', {
+      description: 'CloudFront HTTPS dashboard URL (use this for Builder Center)',
+      value: `https://${dashboardDistribution.domainName}/`,
     });
   }
 }
