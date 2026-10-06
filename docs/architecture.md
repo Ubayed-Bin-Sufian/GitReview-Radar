@@ -13,10 +13,10 @@ flowchart TB
   U[User] --> F[Frontend: S3 + CloudFront + React dashboard]
   F -->|Reads/writes via browser| S[(Supabase Postgres)]
 
-  F -->|Calls protected API| APIGW[API Gateway (HTTP API)]
-  APIGW --> SYNC[Lambda: Sync Handler (/sync)]
+  F -->|Calls protected API| APIGW[API Gateway - HTTP API]
+  APIGW --> SYNC[Lambda: Sync Handler - /sync]
   SYNC --> GH[External: GitHub API]
-  SYNC --> JEv[Jev SystemOne API (per-user key)]
+  SYNC --> JEv[Jev SystemOne API - per-user key]
   SYNC --> S
 
   EVT[EventBridge daily cron] --> DIGEST[Lambda: Digest Job]
