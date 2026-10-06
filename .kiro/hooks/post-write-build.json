@@ -2,13 +2,23 @@
   "version": "v1",
   "hooks": [
     {
-      "name": "Build on File Write",
-      "trigger": "PostToolUse",
-      "description": "Trigger npm build after file writes",
-      "matcher": "PostFileCreate|PostFileSave",
+      "name": "Build on File Create",
+      "trigger": "PostFileCreate",
+      "matcher": "src/.*\\.ts$|infrastructure/.*\\.ts$",
+      "description": "Run TypeScript build after a new source file is created",
       "action": {
         "type": "command",
-        "command": "cd /home/ubayed/GitReview-Radar && npm run build"
+        "command": "cd /home/ubayed/GitReview-Radar && npm run build 2>&1 | tail -20"
+      }
+    },
+    {
+      "name": "Build on File Save",
+      "trigger": "PostFileSave",
+      "matcher": "src/.*\\.ts$|infrastructure/.*\\.ts$",
+      "description": "Run TypeScript build after a source file is saved",
+      "action": {
+        "type": "command",
+        "command": "cd /home/ubayed/GitReview-Radar && npm run build 2>&1 | tail -20"
       }
     }
   ]
