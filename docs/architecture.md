@@ -21,7 +21,7 @@ flowchart TB
 
   EVT[EventBridge daily cron] --> DIGEST[Lambda: Digest Job]
   DIGEST --> S
-  DIGEST --> CONN[Connector plugins (Slack/Discord/Telegram/Gmail)]
+  DIGEST --> CONN[Connector plugins - Slack, Discord, Telegram, Gmail]
 ```
 
 ## How users experience the system (high level)

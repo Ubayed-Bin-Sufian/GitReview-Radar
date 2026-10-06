@@ -24,7 +24,7 @@ flowchart LR
 
   Cron[EventBridge Cron daily] --> DigestLambda[Lambda: Digest Job]
   DigestLambda -->|Read evaluations + enabled connectors| Supabase
-  DigestLambda -->|Dispatch digest| Connectors[Connector Plugins (Slack/Telegram/etc.)]
+  DigestLambda -->|Dispatch digest| Connectors[Connector Plugins - Slack, Telegram, etc.]
 end
 ```
 
